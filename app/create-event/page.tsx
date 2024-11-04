@@ -70,7 +70,7 @@ export default function CreateEvent() {
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
-      <AuroraBackground> {/* Wrap content with AuroraBackground */}
+      <AuroraBackground>
         <motion.div
           initial={{ opacity: 0.0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
@@ -79,97 +79,99 @@ export default function CreateEvent() {
             duration: 0.8,
             ease: "easeInOut",
           }}
-          className="w-full max-w-4xl bg-gray-800 text-gray-100 p-8 rounded-lg shadow-lg space-y-6"
+          className="flex flex-col md:flex-row w-full max-w-6xl bg-transparent text-gray-100 p-8 rounded-lg space-x-0 md:space-x-8"
         >
-          <h1 className="text-3xl font-bold text-center text-white mb-8">Create New Event</h1>
-          
-          {/* Form layout */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <input
-                type="text"
-                placeholder="Event Title"
-                value={eventTitle}
-                onChange={(e) => setEventTitle(e.target.value)}
-                className="w-full p-3 bg-gray-700 text-white border border-gray-600 rounded focus:outline-none focus:ring focus:ring-indigo-500"
-                required
-              />
-              
-              <textarea
-                placeholder="Event Description"
-                value={eventDescription}
-                onChange={(e) => setEventDescription(e.target.value)}
-                className="w-full p-3 bg-gray-700 text-white border border-gray-600 rounded focus:outline-none focus:ring focus:ring-indigo-500"
-                rows={3}
-              />
-
-              <select
-                value={timezone}
-                onChange={(e) => setTimezone(e.target.value)}
-                className="w-full p-3 bg-gray-700 text-white border border-gray-600 rounded focus:outline-none focus:ring focus:ring-indigo-500"
-                required
-              >
-                <option value="" disabled>Select Timezone</option>
-                {allTimezones.map((tz) => (
-                  <option key={tz} value={tz}>{tz}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="bg-gray-700 rounded-lg p-4 h-full">
-              <h2 className="text-lg font-semibold text-indigo-300 mb-2">What days might work?</h2>
+          {/* Calendar Section */}
+          <div className="flex-1 bg-transparent flex justify-center">
+            <div className="">
+              <h2 className="text-lg font-semibold text-indigo-300 mb-10">What days might work?</h2>
               <Calendar
                 mode="multiple"
                 selected={selectedDates}
                 onSelect={(dates) => setSelectedDates(dates as Date[])}
-                className="text-white flex"
+                className="text-white transform scale-125" // Enlarge calendar
               />
             </div>
           </div>
 
-          {/* Time selection shown after date selection */}
-          {selectedDates.length > 0 && (
-            <div className="space-y-6 mt-6">
-              <h2 className="text-lg font-semibold text-indigo-300">What times might work?</h2>
-              {selectedDates.map((date) => {
-                const dateStr = formatDate(date);
-                return (
-                  <div key={dateStr} className="bg-gray-700 p-4 rounded-lg">
-                    <h3 className="text-md font-medium text-indigo-400">{dateStr}</h3>
-                    <div className="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-4 mt-2">
-                      <div className="flex flex-col w-full">
-                        <label className="text-sm text-gray-400 mb-1">No earlier than:</label>
-                        <TimePicker
-                          label="Start Time"
-                          value={timeRanges[dateStr]?.start || null}
-                          onChange={(newValue) => handleTimeChange(dateStr, 'start', newValue)}
-                          className="w-full bg-gray-700 rounded focus:ring-indigo-500"
-                        />
-                      </div>
-                      <div className="flex flex-col w-full">
-                        <label className="text-sm text-gray-400 mb-1">No later than:</label>
-                        <TimePicker
-                          label="End Time"
-                          value={timeRanges[dateStr]?.end || null}
-                          onChange={(newValue) => handleTimeChange(dateStr, 'end', newValue)}
-                          className="w-full bg-gray-700 rounded focus:ring-indigo-500"
-                        />
+          {/* Form Section */}
+          <div className="flex-1 space-y-4 max-w-md">
+            <input
+              type="text"
+              placeholder="Event Title"
+              value={eventTitle}
+              onChange={(e) => setEventTitle(e.target.value)}
+              className="w-full p-3 bg-gray-700 text-white border border-gray-600 rounded focus:outline-none focus:ring focus:ring-indigo-500"
+              required
+            />
+            
+            <textarea
+              placeholder="Event Description"
+              value={eventDescription}
+              onChange={(e) => setEventDescription(e.target.value)}
+              className="w-full p-3 bg-gray-700 text-white border border-gray-600 rounded focus:outline-none focus:ring focus:ring-indigo-500"
+              rows={3}
+            />
+
+            <select
+              value={timezone}
+              onChange={(e) => setTimezone(e.target.value)}
+              className="w-full p-3 bg-gray-700 text-white border border-gray-600 rounded focus:outline-none focus:ring focus:ring-indigo-500"
+              required
+            >
+              <option value="" disabled>Select Timezone</option>
+              {allTimezones.map((tz) => (
+                <option key={tz} value={tz}>{tz}</option>
+              ))}
+            </select>
+
+            {/* Time selection shown after date selection */}
+            {selectedDates.length > 0 && (
+              <div className="space-y-4 mt-4 max-h-64 overflow-y-auto"> {/* Limit height and make scrollable */}
+                <h2 className="text-lg font-semibold text-indigo-300">What times might work?</h2>
+                {selectedDates.map((date) => {
+                  const dateStr = formatDate(date);
+                  return (
+                    <div key={dateStr} className="bg-gray-700 p-4 rounded-lg">
+                      <h3 className="text-md font-medium text-indigo-400">{dateStr}</h3>
+                      <div className="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-4 mt-2">
+                        <div className="flex flex-col w-full">
+                          <label className="text-sm text-gray-400 mb-1">No earlier than:</label>
+                          <TimePicker
+                            label="Start Time"
+                            value={timeRanges[dateStr]?.start || null}
+                            onChange={(newValue) => handleTimeChange(dateStr, 'start', newValue)}
+                            className="w-full bg-gray-700 rounded focus:ring-indigo-500"
+                          />
+                        </div>
+                        <div className="flex flex-col w-full">
+                          <label className="text-sm text-gray-400 mb-1">No later than:</label>
+                          <TimePicker
+                            label="End Time"
+                            value={timeRanges[dateStr]?.end || null}
+                            onChange={(newValue) => handleTimeChange(dateStr, 'end', newValue)}
+                            className="w-full bg-gray-700 rounded focus:ring-indigo-500"
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Create Event Button */}
+            <div className="flex justify-start mt-4">
+              <button
+                onClick={handleSubmit}
+                className="px-6 py-2 bg-indigo-600 text-white font-semibold rounded hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition duration-200"
+              >
+                Create Event
+              </button>
             </div>
-          )}
 
-          <button
-            onClick={handleSubmit}
-            className="w-full mt-6 py-3 bg-indigo-600 text-white font-semibold rounded hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition duration-200"
-          >
-            Create Event
-          </button>
-
-          {error && <p className="text-red-500 text-center mt-2">{error}</p>}
+            {error && <p className="text-red-500 text-center mt-2">{error}</p>}
+          </div>
         </motion.div>
       </AuroraBackground>
     </LocalizationProvider>

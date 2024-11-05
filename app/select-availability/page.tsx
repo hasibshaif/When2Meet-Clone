@@ -3,14 +3,21 @@
 import React, { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { SelectableGroup, createSelectable } from 'react-selectable-fast';
-import dayjs, { Dayjs } from 'dayjs';
+import dayjs from 'dayjs';
 
+// Create a selectable cell component with compact styling
 const SelectableCell = createSelectable(({ selectableRef, isSelected, hour }: any) => (
   <div
     ref={selectableRef}
-    className={`p-2 text-center rounded cursor-pointer ${
-      isSelected ? 'bg-indigo-600' : 'bg-gray-700'
-    }`}
+    className={`text-center cursor-pointer border border-gray-600 ${
+      isSelected ? 'bg-indigo-600' : 'bg-gray-800'
+    } hover:bg-indigo-500 transition-colors duration-150`}
+    style={{
+      padding: '10px 5px', // Compact padding for a grid look
+      fontSize: '0.875rem', // Slightly smaller font
+      width: '50px', // Standard width for grid cells
+      height: '40px', // Standard height for grid cells
+    }}
   >
     {dayjs().hour(hour).format('h A')}
   </div>
@@ -38,10 +45,15 @@ export default function SelectAvailability() {
       const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => startHour + i);
 
       return (
-        <div key={formattedDate} className="flex flex-col items-center">
+        <div key={formattedDate} className="flex flex-col items-center mb-4">
           <h3 className="text-md font-medium text-indigo-400 mb-2">{formattedDate}</h3>
           <SelectableGroup
-            className="grid grid-cols-1 gap-1 w-20"
+            className="grid grid-cols-1 gap-0.5 w-fit"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: `repeat(${dates.length}, 1fr)`,
+              gap: '2px', // Small gap for grid-like separation
+            }}
             onSelectionFinish={handleSelection}
           >
             {hours.map(hour => (

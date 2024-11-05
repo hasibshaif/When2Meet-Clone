@@ -1,126 +1,71 @@
 // pages/select-availability.tsx
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { SelectableGroup, createSelectable } from 'react-selectable-fast';
+import dayjs, { Dayjs } from 'dayjs';
 
-type TimeRange = { start: string; end: string };
-type AvailabilityGrid = Record<string, Record<string, Set<string>>>;
-
-const generateHourSlots = (start: string, end: string) => {
-  const hourSlots: string[] = [];
-  let currentTime = new Date(`1970-01-01T${start}:00`);
-  const endTime = new Date(`1970-01-01T${end}:00`);
-
-  while (currentTime <= endTime) {
-    hourSlots.push(currentTime.toTimeString().slice(0, 5)); // Format "HH:MM"
-    currentTime.setHours(currentTime.getHours() + 1); // Increment by 1 hour
-  }
-  return hourSlots;
-};
+const SelectableCell = createSelectable(({ selectableRef, isSelected, hour }: any) => (
+  <div
+    ref={selectableRef}
+    className={`p-2 text-center rounded cursor-pointer ${
+      isSelected ? 'bg-indigo-600' : 'bg-gray-700'
+    }`}
+  >
+    {dayjs().hour(hour).format('h A')}
+  </div>
+));
 
 export default function SelectAvailability() {
-  const [name, setName] = useState('');
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [userAvailability, setUserAvailability] = useState<AvailabilityGrid>({});
-  const [groupAvailability, setGroupAvailability] = useState<AvailabilityGrid>({});
+  const searchParams = useSearchParams();
+  const eventDataString = searchParams.get('data');
+  const eventData = eventDataString ? JSON.parse(decodeURIComponent(eventDataString)) : {};
 
-  // Sample data: Replace with data from your backend
-  const selectedDates = ['2024-11-01', '2024-11-02'];
-  const timeRanges: Record<string, TimeRange> = {
-    '2024-11-01': { start: '09:00', end: '17:00' },
-    '2024-11-02': { start: '10:00', end: '16:00' },
+  const { title, dates, timeRanges } = eventData;
+
+  const [selectedCells, setSelectedCells] = useState(new Set());
+
+  const handleSelection = (keys: any) => {
+    setSelectedCells(new Set(keys.map((key: any) => key.hour)));
   };
 
-  const handleCellHighlight = (date: string, time: string) => {
-    setUserAvailability(prev => {
-      const dateAvailability = prev[date] || {};
-      const timeAvailability = dateAvailability[time] || new Set<string>();
-      if (timeAvailability.has(name)) timeAvailability.delete(name);
-      else timeAvailability.add(name);
+  const renderGrid = () => {
+    return dates.map((date: Date) => {
+      const formattedDate = dayjs(date).format('MM/DD/YYYY');
+      const startHour = dayjs(timeRanges[formattedDate]?.start).hour();
+      const endHour = dayjs(timeRanges[formattedDate]?.end).hour();
 
-      return {
-        ...prev,
-        [date]: { ...dateAvailability, [time]: timeAvailability },
-      };
-    });
+      const hours = Array.from({ length: endHour - startHour + 1 }, (_, i) => startHour + i);
 
-    setGroupAvailability(prev => {
-      const dateAvailability = prev[date] || {};
-      const timeAvailability = dateAvailability[time] || new Set<string>();
-      if (timeAvailability.has(name)) timeAvailability.delete(name);
-      else timeAvailability.add(name);
-
-      return {
-        ...prev,
-        [date]: { ...dateAvailability, [time]: timeAvailability },
-      };
+      return (
+        <div key={formattedDate} className="flex flex-col items-center">
+          <h3 className="text-md font-medium text-indigo-400 mb-2">{formattedDate}</h3>
+          <SelectableGroup
+            className="grid grid-cols-1 gap-1 w-20"
+            onSelectionFinish={handleSelection}
+          >
+            {hours.map(hour => (
+              <SelectableCell
+                key={`${formattedDate}-${hour}`}
+                selectableKey={{ date: formattedDate, hour }}
+                hour={hour}
+                isSelected={selectedCells.has(hour)}
+              />
+            ))}
+          </SelectableGroup>
+        </div>
+      );
     });
   };
-
-  const renderTimeGrid = (availability: AvailabilityGrid, editable = false) => (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      {selectedDates.map(date => {
-        const hourSlots = generateHourSlots(timeRanges[date].start, timeRanges[date].end);
-        return (
-          <div key={date} className="border p-2">
-            <h3 className="text-center font-semibold mb-2">{date}</h3>
-            <div className="grid gap-1">
-              {hourSlots.map(time => {
-                const isAvailable = availability[date]?.[time]?.size > 0;
-                const highlightLevel = availability[date]?.[time]?.size || 0;
-                const bgColor = highlightLevel === 1 ? 'bg-green-200' : highlightLevel === 2 ? 'bg-green-400' : 'bg-green-600';
-
-                return (
-                  <div
-                    key={`${date}-${time}`}
-                    onClick={() => editable && handleCellHighlight(date, time)}
-                    className={`p-2 text-xs text-center cursor-pointer border ${isAvailable ? bgColor : 'bg-gray-200'} border-b-4 border-dotted`}
-                    onMouseEnter={() => {
-                      if (!editable) {
-                        const members = Array.from(availability[date]?.[time] || []).join(', ');
-                        console.log(`Available members at ${date} ${time}: ${members}`);
-                      }
-                    }}
-                  >
-                    {time}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
 
   return (
-    <div className="min-h-screen p-6 bg-gray-100 flex flex-col items-center">
-      <h1 className="text-2xl font-bold mb-4">Select Your Availability</h1>
-      {!isSubmitted ? (
-        <div className="bg-white p-6 rounded shadow w-full max-w-lg space-y-4">
-          <input
-            type="text"
-            placeholder="Your Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full p-2 border rounded"
-            required
-          />
-          <button onClick={() => setIsSubmitted(true)} className="bg-blue-500 text-white py-2 px-4 rounded">
-            Submit
-          </button>
+    <div className="flex flex-col md:flex-row w-full max-w-6xl mx-auto p-4 md:p-8 space-x-0 md:space-x-8 bg-gray-900 text-gray-100 rounded-lg">
+      <div className="flex-1 bg-transparent flex flex-col items-center space-y-4">
+        <h2 className="text-lg font-semibold text-indigo-300 mb-2">Select Your Availability</h2>
+        <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-8 overflow-x-auto">
+          {renderGrid()}
         </div>
-      ) : (
-        <div className="flex flex-col sm:flex-row gap-4 w-full max-w-4xl">
-          <div className="flex-1">
-            <h2 className="text-center font-semibold mb-2">Group Availability</h2>
-            {renderTimeGrid(groupAvailability)}
-          </div>
-          <div className="flex-1">
-            <h2 className="text-center font-semibold mb-2">Your Availability</h2>
-            {renderTimeGrid(userAvailability, true)}
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 }

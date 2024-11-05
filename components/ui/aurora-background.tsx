@@ -21,7 +21,7 @@ export const AuroraBackground = ({
         )}
         {...props}
       >
-        <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none"> {/* Ensure no pointer events */}
           <div
             className={cn(
               `
@@ -36,7 +36,7 @@ export const AuroraBackground = ({
               after:dark:[background-image:var(--dark-gradient),var(--aurora)]
               after:[background-size:200%,_100%]
               after:animate-aurora after:[background-attachment:fixed] after:mix-blend-difference
-              pointer-events-none
+              pointer-events-none // This ensures no interference with input fields
               absolute -inset-[10px] opacity-40 will-change-transform`,
               showRadialGradient &&
                 `[mask-image:radial-gradient(ellipse_at_100%_0%,black_10%,var(--transparent)_70%)]`

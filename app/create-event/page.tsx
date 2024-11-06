@@ -1,7 +1,8 @@
-// pages/create-event.tsx
 "use client";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { v4 as uuidv4 } from "uuid";
+import supabase from "@/supabaseClient"; // Adjust path as needed
 import { Calendar } from "@/components/ui/calendar";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -16,9 +17,7 @@ export default function CreateEvent() {
   const [eventDescription, setEventDescription] = useState("");
   const [timezone, setTimezone] = useState("");
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
-  const [timeRanges, setTimeRanges] = useState<
-    Record<string, { start: Dayjs | null; end: Dayjs | null }>
-  >({});
+  const [timeRanges, setTimeRanges] = useState<Record<string, { start: Dayjs | null; end: Dayjs | null }>>({});
   const [error, setError] = useState("");
 
   const allTimezones = Intl.supportedValuesOf("timeZone");
@@ -28,7 +27,7 @@ export default function CreateEvent() {
     setTimezone(localTimezone);
   }, []);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setError("");
   
     if (!eventTitle.trim()) {
@@ -50,25 +49,45 @@ export default function CreateEvent() {
       return;
     }
   
+    // Create unique event ID and prepare event details for Supabase
+    const eventId = uuidv4();
     const eventDetails = {
+      eventId,
       title: eventTitle,
       description: eventDescription,
       timezone,
-      dates: selectedDates,
-      timeRanges
+      dates: selectedDates.map(date => formatDate(date)), // Array of formatted dates
+      timeRanges: Object.fromEntries(
+        Object.entries(timeRanges).map(([date, range]) => [date, { start: range.start?.format("HH:mm"), end: range.end?.format("HH:mm") }])
+      ),
     };
   
-    // Serialize and encode data for safe URL passing
-    const eventDataString = encodeURIComponent(JSON.stringify(eventDetails));
+    // Insert event details into Supabase
+    const { data, error: insertError } = await supabase
+      .from("Events")
+      .insert({
+        eventId: eventDetails.eventId,
+        title: eventDetails.title,
+        description: eventDetails.description,
+        timezone: eventDetails.timezone,
+        dates: eventDetails.dates, // Array of dates
+        time_ranges: eventDetails.timeRanges // JSON object of time ranges
+      });
   
-    router.push(`/select-availability?data=${eventDataString}`);
+    if (insertError) {
+      console.error("Error inserting event:", insertError); // Log the exact error from Supabase
+      setError("Failed to create event. Please try again.");
+      return;
+    }
+  
+    const eventDataString = encodeURIComponent(JSON.stringify(eventDetails));
+    const eventLink = `/select-availability?data=${eventDataString}&eventId=${eventId}`;
+  
+    router.push(eventLink);
   };
+  
 
-  const handleTimeChange = (
-    date: string,
-    field: "start" | "end",
-    value: Dayjs | null
-  ) => {
+  const handleTimeChange = (date: string, field: "start" | "end", value: Dayjs | null) => {
     setTimeRanges((prev) => ({
       ...prev,
       [date]: {
@@ -108,7 +127,7 @@ export default function CreateEvent() {
                 mode="multiple"
                 selected={selectedDates}
                 onSelect={(dates) => setSelectedDates(dates as Date[])}
-                className="text-white transform scale-110 md:scale-125" // Enlarge calendar for larger screens
+                className="text-white transform scale-110 md:scale-125"
               />
             </div>
           </div>
@@ -148,17 +167,12 @@ export default function CreateEvent() {
               ))}
             </select>
 
-            {/* Time selection shown after date selection */}
-            {/* Time selection shown after date selection */}
             {selectedDates.length > 0 && (
               <>
-                {/* Header outside the scrollable div */}
                 <h2 className="text-lg font-semibold text-indigo-300 mt-4">
                   What times might work?
                 </h2>
                 <div className="space-y-4 max-h-48 md:max-h-64 overflow-y-auto mt-2">
-                  {" "}
-                  {/* Limit height and make scrollable */}
                   {selectedDates.map((date) => {
                     const dateStr = formatDate(date);
                     return (
@@ -201,7 +215,6 @@ export default function CreateEvent() {
               </>
             )}
 
-            {/* Create Event Button */}
             <div className="flex justify-start mt-4">
               <button
                 onClick={handleSubmit}
